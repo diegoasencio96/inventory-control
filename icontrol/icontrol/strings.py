@@ -1,0 +1,3 @@
+APP_VERSION = '0.0.1'
+APP_NAME = 'IControl'
+APP_NAME_VERSION = '{} {}'.format(APP_NAME, APP_VERSION)

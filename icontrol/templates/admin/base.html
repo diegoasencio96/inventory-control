@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% load i18n suit_tags %}
+
+{% block branding %}
+<div align=center>
+    <h1 id="site-name" style="color: #fff;"><img src="/media/inventory.png" width="40%" /></h1><br>
+</div>
+{% endblock %}
+
+{% block welcome-msg %}
+    <span class="welcome">
+        {% trans 'Welcome,' %}
+        <strong>{% firstof user.get_short_name user.get_username %}</strong>.
+    </span>
+{% endblock %}
+
+
+{% block title %}{{ _('ICONTROL') }} | {{ _('ADMIN') }}{% endblock %}
+
+{% block footer_links %}
+    Soporte: <a href="mailto:diegoasencio96@gmail.com" target="_blank">diegoasencio96@gmail.com</a>
+{% endblock %}
+
+{% block copyright %}
+    IControl v0.0.1 - Sistema de Información para control de Inventarios
+    <span class="hidden-md-down"></span>
+    <br>Desarrollado por <a href="www.diegoasencio.co" target="_blank">Diego A Asencio C</a>.
+    <br>Todos los derechos reservados - 2020
+{% endblock %}

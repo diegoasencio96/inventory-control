@@ -1,0 +1,654 @@
+{% extends "admin/base.html" %}
+{% load i18n static suit_tags %}
+
+{% block content %}
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
+
+    <style>
+        .my-collapsible {
+            background-color: #777;
+            color: white;
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 12px;
+        }
+
+        .active, .my-collapsible:hover {
+            background-color: #555;
+        }
+
+        .my-content {
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #f1f1f1;
+        }
+
+        .modalDialog {
+            position: absolute;
+            z-index: 99999;
+            top: 0;
+            right: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            -webkit-transition: opacity 400ms ease-in;
+            -moz-transition: opacity 400ms ease-in;
+            transition: opacity 400ms ease-in;
+            pointer-events: none;
+        }
+
+        .modalDialog:target {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modalDialog > div {
+            width: 400px;
+            position: relative;
+            margin: 10% auto;
+            padding: 5px 20px 13px 20px;
+            border-radius: 10px;
+            background: #fff;
+            background: -moz-linear-gradient(#fff, #999);
+            background: -webkit-linear-gradient(#fff, #999);
+            background: -o-linear-gradient(#fff, #999);
+            -webkit-transition: opacity 400ms ease-in;
+            -moz-transition: opacity 400ms ease-in;
+            transition: opacity 400ms ease-in;
+        }
+
+        .close {
+            background: #606061;
+            color: #FFFFFF;
+            line-height: 25px;
+            position: absolute;
+            right: -12px;
+            text-align: center;
+            top: -10px;
+            width: 24px;
+            text-decoration: none;
+            font-weight: bold;
+            -webkit-border-radius: 12px;
+            -moz-border-radius: 12px;
+            border-radius: 12px;
+            -moz-box-shadow: 1px 1px 3px #000;
+            -webkit-box-shadow: 1px 1px 3px #000;
+            box-shadow: 1px 1px 3px #000;
+        }
+
+        .close:hover {
+            background: red;
+        }
+
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        .autocomplete {
+            /*the container must be positioned relative:*/
+            position: relative;
+            display: inline-block;
+        }
+
+        input {
+            border: 1px solid transparent;
+            background-color: #f1f1f1;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        input[type=text] {
+            background-color: #f1f1f1;
+            width: 100%;
+            height: 100%;
+        }
+
+        input[type=submit] {
+            background-color: DodgerBlue;
+            color: #fff;
+        }
+
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            border-bottom: none;
+            border-top: none;
+            z-index: 99;
+            /*position the autocomplete items to be the same width as the container:*/
+            top: 100%;
+            left: 0;
+            right: 0;
+        }
+
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #d4d4d4;
+        }
+
+        .autocomplete-items div:hover {
+            /*when hovering an item:*/
+            background-color: #e9e9e9;
+        }
+
+        .autocomplete-active {
+            /*when navigating through the items using the arrow keys:*/
+            background-color: DodgerBlue !important;
+            color: #ffffff;
+        }
+
+    </style>
+
+    <div id="openModal" class="modalDialog">
+
+        <div>
+            <a href="#close" id="closeModalAddBill" title="Close" class="close">X</a>
+            <h4 align="center">Factura de venta</h4>
+            <hr>
+            <h5 align="center">MiNegocio.com</h5>
+            <p align="center">
+                NIT: 900.000.000-1
+                <br> Carrera X # 00-00, Villavicencio, Meta
+                <br> Teléfonos: 666666 - 3178874802
+                <br> Régimen común
+            </p>
+            <div class="autocomplete">
+                <div class="row">
+                    <div class="col-md-9">
+                        <input id="myInput" type="text" name="myCountry" placeholder="Cliente">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-info" onclick="miFuncion()">Actualizar</button>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <table class="table" id="detalle_compra">
+                <thead>
+                <tr align="center">
+                    <th>Producto</th>
+                    <th>V. Unitario</th>
+                    <th>Cantidad</th>
+                    <th>V. Total</th>
+                </tr>
+                </thead>
+                <tbody id="tbodyid">
+
+
+                </tbody>
+            </table>
+
+
+            <h5 class="text-center" id="total_pay"></h5>
+            <p class="text-center hidden" id="resume_pay_json"></p>
+            <!-- <input type="checkbox" disabled="true" id="bill_sender">Factura enviada<br> -->
+
+            <br>
+            <div class="row">
+                <button id='btn_save_bill' disabled="true" class="btn btn-danger col-md-10 offset-md-1"
+                        onclick="register_bill()">
+                    Cobrar
+                </button>
+            </div>
+            <hr>
+            <div class="row">
+                <button id="btn_send_bill" disabled="true" class="btn btn-primary col-md-4 offset-md-1" onclick="">
+                    Enviar
+                </button>
+                <div class="col-md-2"></div>
+                <button id="btn_print_bill" disabled="true" class="btn btn-primary col-md-4" onclick="">
+                    Imprimir
+                </button>
+            </div>
+            <br>
+        </div>
+    </div>
+
+
+    <h3>Vender productos</h3>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="shadow-lg rounded content p-3 bg-white">
+                <h5 class="text-center">Productos</h5>
+                <hr>
+                {% if data %}
+                    {% for category in data %}
+                        <div id="category-{{ category.id }}">
+                            <button class="my-collapsible">{{ category.name }}</button>
+                            <div class="my-content">
+                                {% if category.subcategories %}
+                                    <hr>
+                                    {% for subcategory in category.subcategories %}
+                                        <div id="subcategory-{{ category.id }}">
+                                            <button class="my-collapsible">{{ subcategory.name }}</button>
+                                            <div class="my-content">
+                                                <hr>
+                                                <div class="row">
+                                                    {% if subcategory.products %}
+                                                        {% for product in subcategory.products %}
+                                                            <div class="col-md-4">
+                                                                <div id="product-{{ product.id }}"
+                                                                     price='{{ product.price }}' class="card"
+                                                                     style="align-top:10%;">
+                                                                    <img src="/media/{{ product.image }}"
+                                                                         class="card-img-top"
+                                                                         alt="{{ product.description }}" width="100%"
+                                                                         height="100%">
+                                                                    <div class="card-body">
+                                                                        <p class="card-title" style="font-size:12px;">
+                                                                            <b>{{ product.name }}</b></p>
+                                                                        <p class="card-text" style="font-size:10px;"
+                                                                           align="justify">{{ product.description }}.</p>
+                                                                        <center>
+                                                                            <button id="{{ product.id }}"
+                                                                                    name="{{ product.name }}"
+                                                                                    price="{{ product.price }}"
+                                                                                    onclick="addItemCart(this)"
+                                                                                    style="font-size:10px;"
+                                                                                    class="btn btn-primary">Agregar
+                                                                                ${{ product.price }}</button>
+                                                                        </center>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <p>No hay productos disponibles :(</p>
+                                                    {% endif %}
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                        <hr>
+                                    {% endfor %}
+                                {% else %}
+                                    <p>No hay subcategorías disponibles :(</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <hr>
+                    {% endfor %}
+                {% else %}
+                    <p>No hay productos registrados</p>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="shadow-lg rounded content p-3 bg-white  ">
+                <h5 class="text-center">Resumen de Compra
+                    <button class="btn btn-default btn-xs pull-right border" onclick="deleteCart()"><i
+                            class="fa fa-refresh" aria-hidden="true"></i></button>
+                </h5>
+
+                <table class="table table-responsive" id="compra">
+                    <thead>
+                    <tr align="center">
+                        <th>Producto</th>
+                        <th>Valor</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                        <th>Quitar</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    </tbody>
+                </table>
+                <h5 class="text-center" id="total"></h5>
+                <a class="btn btn-success col-md-12" id="btn_check" href="#openModal">
+                    Ver Resumen
+                </a>
+            </div>
+        </div>
+
+
+    </div>
+
+    <br>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+
+    <script type="text/javascript">
+
+
+        $('#btn_check').click(function () {
+            var cont = 0;
+            var productos_id;
+            var productos_cant;
+            var total = 0;
+            productos_id = new Array();
+            productos_cant = new Array();
+
+            var bill = {};
+            var product = {};
+            var products = {};
+            var aux_b = false;
+
+            $('#detalle_compra tbody').empty();
+
+            var table_products = $("#compra tbody tr");
+
+            $('#btn_print_bill').attr("disabled", true);
+            $('#btn_send_bill').attr("disabled", true);
+            table_products.map(function (index, elem) {
+                aux_b = true;
+                product = {};
+                $('#btn_save_bill').attr("disabled", false);
+
+                var id = $(this).attr('id').split('-')[2];
+                var name = $(this).attr('name');
+                var price = $(this).attr('price');
+                var cant = parseInt($('#cantidad' + id).val());
+                var valor_prod = parseInt(price) * cant;
+                product['id'] = id;
+                product['name'] = name;
+                product['price'] = price;
+                product['quantity'] = cant;
+                products[id] = product;
+
+                total = total + valor_prod;
+                var tr_ini = "<tr align='center'>";
+                var td_nombre = "<td >" + name + "</td>";
+                var td_cant = "<td >" + cant + "</td>";
+                var td_valor = "<td >$" + price + "</td>";
+                var td_valor_prod = "<td class='align-middle'>$" + valor_prod + "</td>";
+                var tr_fin = "</tr>";
+                var campos = tr_ini + td_nombre + td_valor + td_cant + td_valor_prod + tr_fin;
+                productos_id[cont] = id;
+                productos_cant[cont] = cant;
+                cont++;
+                $('#detalle_compra tbody').append(campos);
+            });
+            $('#total_pay').text('Total: $' + total);
+            bill['total_pay'] = total;
+            bill['products'] = products;
+            $('#resume_pay_json').text(JSON.stringify(bill));
+            // alert(JSON.stringify(bill));
+
+
+            var is_checked = $('#bill_sender').attr("checked");
+            if ((is_checked == "checked")) {
+                $('#btn_save_bill').attr("disabled", true);
+                $('#btn_print_bill').attr("disabled", false);
+                $('#btn_send_bill').attr("disabled", false);
+            }
+
+            if ((aux_b == false)) {
+                $('#btn_save_bill').attr("disabled", true);
+                $('#btn_print_bill').attr("disabled", true);
+                $('#btn_send_bill').attr("disabled", true);
+            }
+
+        });
+    </script>
+
+
+    <script>
+        var coll = document.getElementsByClassName("my-collapsible");
+        var i;
+
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function () {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        }
+    </script>
+    <script>
+        function deleteCart() {
+            $('#detalle_compra tbody').empty();
+            document.getElementById("closeModalAddBill").click();
+            $('#compra tbody').empty();
+            $('#total').text("--- ");
+            $('#btn_check').attr("disabled", true);
+            $('#bill_sender').attr("checked", false);
+
+        }
+
+        function addItemCart(product) {
+            var id = $(product).attr('id');
+            var nombre = $(product).attr('name');
+            var valor = parseFloat($(product).attr('price'));
+
+            if (!$("#product-detail-" + id).length) {
+
+                var tr_ini = "<tr id='product-detail-" + id + "' name='" + nombre + "' price='" + valor + "' onclick=focuscant(" + id + ")>";
+                var td_imagen = "<td class='align-middle'>" + nombre + "</td>";
+                var td_valor = "<td class='align-middle'>$" + valor + "</td>";
+                var td_cant = "<td class='align-middle'><input type='number' class='form-control form-control-sm text-center c_cantidad' min='1' id='cantidad" + id + "' value='1' onchange='valor_producto_cant(" + id + ", " + valor + ")' keydown='cant_keydown(this)'></td>";
+                var td_valor_t = "<td class='align-middle valor_t_productos' id='valor_prod_tot" + id + "'>$" + valor + "</td>";
+                var td_btn = "<td class='align-middle'><button type='button' class='btn btn-block btn-danger btn-xs' onclick='quitar(" + id + ")'><i class='fa fa-trash'></i></button></td>";
+                var tr_fin = "</tr>";
+                var campos = tr_ini + td_imagen + td_valor + td_cant + td_valor_t + td_btn + tr_fin;
+                $('#compra tbody').append(campos);
+                calcular_total();
+            } else {
+                var cant = parseInt($('#cantidad' + id).val());
+                cant++;
+                $('#cantidad' + id).val(cant);
+                valor_producto_cant(id, valor);
+            }
+        }
+
+
+        function register_bill() {
+            var data_json = $('#resume_pay_json').text();
+            $.ajax({
+                headers: {"X-CSRFToken": '{{csrf_token}}'},
+                method: 'POST',
+                url: '/pdv/invoice/save',
+                dataType: 'json',
+                data: data_json,
+            }).done(function (result) {
+                alert(result.success);// similar behavior as clicking on a link
+                deleteCart();
+                window.location.href = "/pdv/invoice/add/#close";
+            }).fail(function (result) {
+                console.log("Error!!, sin clientes!!")
+                alert(result.error);
+            });
+
+        }
+
+        function quitar(id) {
+            $('#product-detail-' + id).remove();
+            calcular_total();
+        }
+
+        function valor_producto_cant(id, price) {
+            var valor = price
+            var cant = parseInt($('#cantidad' + id).val());
+            if (cant <= 0) {
+                cant = 1;
+                $('#cantidad' + id).val(cant);
+            }
+            var valor_prod = parseFloat(valor) * cant;
+            if (isNaN(valor_prod)) {
+                $('#valor_prod_tot' + id).text("---");
+            } else {
+                $('#valor_prod_tot' + id).text("$" + valor_prod);
+            }
+            calcular_total();
+        }
+
+        function focuscant(id) {
+            $('#cantidad' + id).focus();
+        }
+
+        function calcular_total() {
+            var total = 0;
+            $(".valor_t_productos").each(
+                function (index, value) {
+                    var total_aux = $(this).text().trim();
+                    var total_prod = parseInt(total_aux.replace("$", ""));
+                    total = total + total_prod;
+                }
+            );
+            if (isNaN(total) || total == 0) {
+                $('#total').text("--- ");
+                $('#btn_check').attr("disabled", true);
+                $('#bill_sender').attr("checked", false);
+            } else {
+                $('#total').text("Total $" + total);
+                $('#btn_check').attr("disabled", false);
+            }
+        }
+
+
+    </script>
+
+
+
+    <script>
+        var clients = ["No hay datos"];
+
+        miFuncion();
+
+        // var intervalID = window.setInterval(miFuncion, 5000);
+
+        function miFuncion() {
+            // Aquí va tu código
+            $.ajax({
+                headers: {"X-CSRFToken": '{{csrf_token}}'},
+                method: 'GET',
+                url: '/pdv/client/list',
+                dataType: 'json',
+            }).done(function (result) {
+                autocomplete(document.getElementById("myInput"), result.clients);
+            }).fail(function () {
+                console.log("Error!!, sin clientes!!")
+            });
+
+        }
+
+
+        function autocomplete(inp, arr) {
+            /*the autocomplete function takes two arguments,
+            the text field element and an array of possible autocompleted values:*/
+            var currentFocus;
+            /*execute a function when someone writes in the text field:*/
+            inp.addEventListener("input", function (e) {
+                var a, b, i, val = this.value;
+                /*close any already open lists of autocompleted values*/
+                closeAllLists();
+                if (!val) {
+                    return false;
+                }
+                currentFocus = -1;
+                /*create a DIV element that will contain the items (values):*/
+                a = document.createElement("DIV");
+                a.setAttribute("id", this.id + "autocomplete-list");
+                a.setAttribute("class", "autocomplete-items");
+                /*append the DIV element as a child of the autocomplete container:*/
+                this.parentNode.appendChild(a);
+                /*for each item in the array...*/
+                for (i = 0; i < arr.length; i++) {
+                    /*check if the item starts with the same letters as the text field value:*/
+                    if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                        /*create a DIV element for each matching element:*/
+                        b = document.createElement("DIV");
+                        /*make the matching letters bold:*/
+                        b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+                        b.innerHTML += arr[i].substr(val.length);
+                        /*insert a input field that will hold the current array item's value:*/
+                        b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                        /*execute a function when someone clicks on the item value (DIV element):*/
+                        b.addEventListener("click", function (e) {
+                            /*insert the value for the autocomplete text field:*/
+                            inp.value = this.getElementsByTagName("input")[0].value;
+                            /*close the list of autocompleted values,
+                            (or any other open lists of autocompleted values:*/
+                            closeAllLists();
+                        });
+                        a.appendChild(b);
+                    }
+                }
+            });
+            /*execute a function presses a key on the keyboard:*/
+            inp.addEventListener("keydown", function (e) {
+                var x = document.getElementById(this.id + "autocomplete-list");
+                if (x) x = x.getElementsByTagName("div");
+                if (e.keyCode == 40) {
+                    /*If the arrow DOWN key is pressed,
+                    increase the currentFocus variable:*/
+                    currentFocus++;
+                    /*and and make the current item more visible:*/
+                    addActive(x);
+                } else if (e.keyCode == 38) { //up
+                    /*If the arrow UP key is pressed,
+                    decrease the currentFocus variable:*/
+                    currentFocus--;
+                    /*and and make the current item more visible:*/
+                    addActive(x);
+                } else if (e.keyCode == 13) {
+                    /*If the ENTER key is pressed, prevent the form from being submitted,*/
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        /*and simulate a click on the "active" item:*/
+                        if (x) x[currentFocus].click();
+                    }
+                }
+            });
+
+            function addActive(x) {
+                /*a function to classify an item as "active":*/
+                if (!x) return false;
+                /*start by removing the "active" class on all items:*/
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                /*add class "autocomplete-active":*/
+                x[currentFocus].classList.add("autocomplete-active");
+            }
+
+            function removeActive(x) {
+                /*a function to remove the "active" class from all autocomplete items:*/
+                for (var i = 0; i < x.length; i++) {
+                    x[i].classList.remove("autocomplete-active");
+                }
+            }
+
+            function closeAllLists(elmnt) {
+                /*close all autocomplete lists in the document,
+                except the one passed as an argument:*/
+                var x = document.getElementsByClassName("autocomplete-items");
+                for (var i = 0; i < x.length; i++) {
+                    if (elmnt != x[i] && elmnt != inp) {
+                        x[i].parentNode.removeChild(x[i]);
+                    }
+                }
+            }
+
+            /*execute a function when someone clicks in the document:*/
+            document.addEventListener("click", function (e) {
+                closeAllLists(e.target);
+            });
+        }
+
+
+    </script>
+
+    <script>
+    </script>
+
+{% endblock %}
